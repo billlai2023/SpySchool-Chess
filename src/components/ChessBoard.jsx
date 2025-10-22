@@ -38,19 +38,25 @@ function ChessBoard({ game, onMove, onGameOver, difficulty, showHints, currentTu
       const from = selectedSquare;
       const to = square;
 
-      try {
-        const moveResult = game.move({ from, to, promotion: 'q' });
+      // Check if this is a valid move
+      const validMove = validMoves.includes(to);
 
-        if (moveResult) {
-          setLastMove({ from, to });
-          setSelectedSquare(null);
-          setValidMoves([]);
-          setShowingHints(false);
-          onMove(moveResult);
-          return;
+      if (validMove) {
+        try {
+          const moveResult = game.move({ from, to, promotion: 'q' });
+
+          if (moveResult) {
+            setLastMove({ from, to });
+            setSelectedSquare(null);
+            setValidMoves([]);
+            setShowingHints(false);
+            onMove(moveResult);
+            return;
+          }
+        } catch (error) {
+          // Invalid move - shouldn't happen since we checked validMoves
+          console.error('Move error:', error);
         }
-      } catch (error) {
-        // Invalid move
       }
 
       // If clicking on another piece of the same color, select it

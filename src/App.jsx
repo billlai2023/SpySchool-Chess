@@ -47,20 +47,24 @@ function App() {
 
   // Handle player move
   const handlePlayerMove = (move) => {
-    setMoveCount(moveCount + 1);
-    setMoveHistory([...moveHistory, move.san]);
-    setCurrentTurn(currentTurn + 1);
+    // Update the game state with new instance to ensure proper re-render
+    const newGame = new Chess(game.fen());
+    setGame(newGame);
 
-    // Evaluate the move
-    const evaluation = evaluatePlayerMove(game, move);
+    setMoveCount(prev => prev + 1);
+    setMoveHistory(prev => [...prev, move.san]);
+    setCurrentTurn(prev => prev + 1);
 
     // Give feedback
     if (game.isCheck()) {
       setAvatarMessage(dialogues.check[Math.floor(Math.random() * dialogues.check.length)]);
-    } else if (evaluation.quality === 'excellent') {
-      setAvatarMessage(dialogues.goodMove[Math.floor(Math.random() * dialogues.goodMove.length)]);
-    } else if (evaluation.quality === 'poor') {
-      setAvatarMessage(dialogues.badMove[Math.floor(Math.random() * dialogues.badMove.length)]);
+    } else {
+      // Simple feedback based on move type
+      if (move.captured) {
+        setAvatarMessage(dialogues.goodMove[Math.floor(Math.random() * dialogues.goodMove.length)]);
+      } else {
+        setAvatarMessage("Good move! Think ahead...");
+      }
     }
 
     // Check if game is over
@@ -69,31 +73,33 @@ function App() {
       return;
     }
 
-    // AI's turn
+    // AI's turn - use setTimeout to allow UI to update
     setTimeout(() => {
-      makeAIMove();
+      // Pass the current game state to AI
+      makeAIMove(newGame);
     }, 1000);
   };
 
   // Make AI move
-  const makeAIMove = () => {
+  const makeAIMove = (currentGame) => {
     setIsThinking(true);
     setAvatarMessage("I'm thinking...");
 
     setTimeout(() => {
-      const aiMove = getBestMove(game, currentMission.aiStrength);
+      const aiMove = getBestMove(currentGame, currentMission.aiStrength);
 
       if (aiMove) {
-        game.move(aiMove);
-        setGame(new Chess(game.fen()));
-        setMoveHistory([...moveHistory, aiMove.san]);
-        setCurrentTurn(currentTurn + 1);
+        currentGame.move(aiMove);
+        setGame(new Chess(currentGame.fen()));
+        setMoveHistory(prev => [...prev, aiMove.san]);
+        setMoveCount(prev => prev + 1);
+        setCurrentTurn(prev => prev + 1);
         setIsThinking(false);
 
         // Check if game is over
-        if (game.isGameOver()) {
+        if (currentGame.isGameOver()) {
           handleGameOver('loss');
-        } else if (game.isCheck()) {
+        } else if (currentGame.isCheck()) {
           setAvatarMessage("You're in check! Protect your King!");
         } else {
           setAvatarMessage("Your turn! Think carefully about your next move.");
